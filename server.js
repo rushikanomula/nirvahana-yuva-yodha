@@ -1,27 +1,52 @@
-require('dotenv').config({
-    path: require('path').join(__dirname, '.env.local')
+require("dotenv").config({
+    path: require("path").join(__dirname, ".env.local")
 });
 
-const http = require('http');
-const fs = require('fs');
-const path = require('path');
+const http = require("http");
+const fs = require("fs");
+const path = require("path");
 
 const PORT = process.env.PORT || 3001;
-const CARTO_API_KEY = process.env.CARTO_API_KEY || '';
+const CARTO_API_KEY = process.env.CARTO_API_KEY || "";
 
-const server = http.createServer((req, res) => {
+
+// =========================================================
+// REQUEST HANDLER
+// =========================================================
+
+function handleRequest(req, res) {
 
     console.log(`[HTTP] ${req.method} ${req.url}`);
 
     const parsedUrl = new URL(
         req.url,
-        `http://${req.headers.host || 'localhost:3001'}`
+        `http://${req.headers.host || "localhost:3001"}`
     );
 
     let pathname = parsedUrl.pathname;
 
-    if (pathname.length > 1 && pathname.endsWith('/')) {
-        pathname = pathname.slice(0, -1);
+
+    // =========================================================
+    // CORS
+    // =========================================================
+
+    res.setHeader("Access-Control-Allow-Origin", "*");
+    res.setHeader(
+        "Access-Control-Allow-Methods",
+        "GET, POST, OPTIONS"
+    );
+    res.setHeader(
+        "Access-Control-Allow-Headers",
+        "Content-Type, Authorization"
+    );
+
+
+    if (req.method === "OPTIONS") {
+
+        res.writeHead(204);
+        res.end();
+
+        return;
     }
 
 
@@ -29,19 +54,24 @@ const server = http.createServer((req, res) => {
     // 1. CARTO GIS CONFIG API
     // =========================================================
 
-    if (pathname === '/api/gis/config' && req.method === 'GET') {
-
-        res.writeHead(200, {
-            'Content-Type': 'application/json'
-        });
+    if (
+        pathname === "/api/gis/config" &&
+        req.method === "GET"
+    ) {
 
         const tileLayerUrl =
             `https://basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png` +
             `?key=${CARTO_API_KEY}`;
 
-        res.end(JSON.stringify({
-            tileLayerUrl: tileLayerUrl
-        }));
+        res.writeHead(200, {
+            "Content-Type": "application/json"
+        });
+
+        res.end(
+            JSON.stringify({
+                tileLayerUrl: tileLayerUrl
+            })
+        );
 
         return;
     }
@@ -51,15 +81,20 @@ const server = http.createServer((req, res) => {
     // 2. CARTO STATUS API
     // =========================================================
 
-    if (pathname === '/api/gis/status' && req.method === 'GET') {
+    if (
+        pathname === "/api/gis/status" &&
+        req.method === "GET"
+    ) {
 
         res.writeHead(200, {
-            'Content-Type': 'application/json'
+            "Content-Type": "application/json"
         });
 
-        res.end(JSON.stringify({
-            configured: CARTO_API_KEY.length > 0
-        }));
+        res.end(
+            JSON.stringify({
+                configured: CARTO_API_KEY.length > 0
+            })
+        );
 
         return;
     }
@@ -69,27 +104,35 @@ const server = http.createServer((req, res) => {
     // 3. AI COPILOT API
     // =========================================================
 
-    if (pathname === '/api/ai/copilot' && req.method === 'POST') {
+    if (
+        pathname === "/api/ai/copilot" &&
+        req.method === "POST"
+    ) {
 
-        let body = '';
+        let body = "";
 
-        req.on('data', chunk => {
-            body += chunk;
+        req.on("data", chunk => {
+            body += chunk.toString();
         });
 
-        req.on('end', () => {
+
+        req.on("end", () => {
 
             try {
 
-                const data = JSON.parse(body || '{}');
+                const data = JSON.parse(body || "{}");
 
-                const prompt = (data.prompt || '').trim();
-                const promptLower = prompt.toLowerCase();
+                const prompt =
+                    (data.prompt || "").trim();
+
+                const promptLower =
+                    prompt.toLowerCase();
 
                 const bldg =
-                    data.buildingContext?.name || 'TechPark Alpha';
+                    data.buildingContext?.name ||
+                    "TechPark Alpha";
 
-                let reply = '';
+                let reply = "";
 
 
                 // =================================================
@@ -97,9 +140,9 @@ const server = http.createServer((req, res) => {
                 // =================================================
 
                 if (
-                    promptLower.includes('hi') ||
-                    promptLower.includes('hello') ||
-                    promptLower.includes('hey')
+                    promptLower.includes("hi") ||
+                    promptLower.includes("hello") ||
+                    promptLower.includes("hey")
                 ) {
 
                     reply =
@@ -114,10 +157,10 @@ const server = http.createServer((req, res) => {
                 // =================================================
 
                 else if (
-                    promptLower.includes('freq') ||
-                    promptLower.includes('voltage') ||
-                    promptLower.includes('stability') ||
-                    promptLower.includes('microgrid')
+                    promptLower.includes("freq") ||
+                    promptLower.includes("voltage") ||
+                    promptLower.includes("stability") ||
+                    promptLower.includes("microgrid")
                 ) {
 
                     reply =
@@ -132,10 +175,10 @@ const server = http.createServer((req, res) => {
                 // =================================================
 
                 else if (
-                    promptLower.includes('peak') ||
-                    promptLower.includes('shaving') ||
-                    promptLower.includes('cost') ||
-                    promptLower.includes('tariff')
+                    promptLower.includes("peak") ||
+                    promptLower.includes("shaving") ||
+                    promptLower.includes("cost") ||
+                    promptLower.includes("tariff")
                 ) {
 
                     reply =
@@ -147,15 +190,15 @@ const server = http.createServer((req, res) => {
 
 
                 // =================================================
-                // HVAC / TEMPERATURE / COOLING / CHILLER / ZONE
+                // HVAC / TEMPERATURE / COOLING
                 // =================================================
 
                 else if (
-                    promptLower.includes('hvac') ||
-                    promptLower.includes('temp') ||
-                    promptLower.includes('cooling') ||
-                    promptLower.includes('chiller') ||
-                    promptLower.includes('zone')
+                    promptLower.includes("hvac") ||
+                    promptLower.includes("temp") ||
+                    promptLower.includes("cooling") ||
+                    promptLower.includes("chiller") ||
+                    promptLower.includes("zone")
                 ) {
 
                     reply =
@@ -170,8 +213,8 @@ const server = http.createServer((req, res) => {
                 // =================================================
 
                 else if (
-                    promptLower.includes('battery') ||
-                    promptLower.includes('bess')
+                    promptLower.includes("battery") ||
+                    promptLower.includes("bess")
                 ) {
 
                     reply =
@@ -182,7 +225,7 @@ const server = http.createServer((req, res) => {
 
 
                 // =================================================
-                // DEFAULT RESPONSE
+                // DEFAULT
                 // =================================================
 
                 else {
@@ -196,42 +239,47 @@ const server = http.createServer((req, res) => {
 
 
                 // =================================================
-                // SEND AI RESPONSE
+                // SEND RESPONSE
                 // =================================================
 
                 res.writeHead(200, {
-                    'Content-Type': 'application/json'
+                    "Content-Type": "application/json"
                 });
 
-                res.end(JSON.stringify({
-                    choices: [
-                        {
-                            message: {
-                                content: reply
+                res.end(
+                    JSON.stringify({
+                        choices: [
+                            {
+                                message: {
+                                    content: reply
+                                }
                             }
-                        }
-                    ]
-                }));
+                        ]
+                    })
+                );
 
-            } catch (err) {
+            } catch (error) {
 
-                console.error('[AI ERROR]', err);
+                console.error("[AI ERROR]", error);
 
                 res.writeHead(200, {
-                    'Content-Type': 'application/json'
+                    "Content-Type": "application/json"
                 });
 
-                res.end(JSON.stringify({
-                    choices: [
-                        {
-                            message: {
-                                content:
-                                    'All microgrid and telemetry systems are online and fully operational!'
+                res.end(
+                    JSON.stringify({
+                        choices: [
+                            {
+                                message: {
+                                    content:
+                                        "All microgrid and telemetry systems are online and fully operational!"
+                                }
                             }
-                        }
-                    ]
-                }));
+                        ]
+                    })
+                );
             }
+
         });
 
         return;
@@ -239,114 +287,161 @@ const server = http.createServer((req, res) => {
 
 
     // =========================================================
-    // 4. STATIC FILE SERVING
+    // UNKNOWN API
+    // =========================================================
+
+    if (pathname.startsWith("/api/")) {
+
+        res.writeHead(404, {
+            "Content-Type": "application/json"
+        });
+
+        res.end(
+            JSON.stringify({
+                error: "API endpoint not found"
+            })
+        );
+
+        return;
+    }
+
+
+    // =========================================================
+    // LOCAL STATIC FILE SERVING
     // =========================================================
 
     let safePath =
-        pathname === '/'
-            ? 'index.html'
-            : pathname;
-
-    if (safePath.startsWith('/')) {
-        safePath = safePath.slice(1);
-    }
-
-    const filePath = path.join(__dirname, safePath);
+        pathname === "/"
+            ? "index.html"
+            : pathname.replace(/^\/+/, "");
 
 
-    fs.readFile(filePath, (err, content) => {
+    const filePath =
+        path.join(__dirname, safePath);
 
-        if (err) {
 
-            console.error('[FILE ERROR]', err.message);
+    fs.readFile(filePath, (error, content) => {
+
+        if (error) {
+
+            console.error(
+                "[FILE ERROR]",
+                error.message
+            );
 
             res.writeHead(404, {
-                'Content-Type': 'application/json'
+                "Content-Type": "text/plain"
             });
 
-            res.end(JSON.stringify({
-                error: 'File not found: ' + pathname
-            }));
+            res.end("File not found");
 
             return;
         }
 
 
-        const ext = path.extname(filePath).toLowerCase();
+        const ext =
+            path.extname(filePath).toLowerCase();
 
-        let contentType = 'application/octet-stream';
+
+        const MIME_TYPES = {
+
+            ".html": "text/html",
+
+            ".js": "application/javascript",
+
+            ".css": "text/css",
+
+            ".json": "application/json",
+
+            ".png": "image/png",
+
+            ".jpg": "image/jpeg",
+
+            ".jpeg": "image/jpeg",
+
+            ".svg": "image/svg+xml",
+
+            ".ico": "image/x-icon",
+
+            ".webp": "image/webp",
+
+            ".gif": "image/gif"
+
+        };
 
 
-        if (ext === '.html') {
-            contentType = 'text/html';
-        }
-
-        else if (ext === '.js') {
-            contentType = 'text/javascript';
-        }
-
-        else if (ext === '.css') {
-            contentType = 'text/css';
-        }
-
-        else if (ext === '.json') {
-            contentType = 'application/json';
-        }
-
-        else if (ext === '.png') {
-            contentType = 'image/png';
-        }
-
-        else if (ext === '.jpg' || ext === '.jpeg') {
-            contentType = 'image/jpeg';
-        }
-
-        else if (ext === '.svg') {
-            contentType = 'image/svg+xml';
-        }
-
-        else if (ext === '.ico') {
-            contentType = 'image/x-icon';
-        }
-
-        else if (ext === '.webp') {
-            contentType = 'image/webp';
-        }
-
-        else if (ext === '.gif') {
-            contentType = 'image/gif';
-        }
+        const contentType =
+            MIME_TYPES[ext] ||
+            "application/octet-stream";
 
 
         res.writeHead(200, {
-            'Content-Type': contentType
+            "Content-Type": contentType
         });
 
         res.end(content);
+
     });
-
-});
+}
 
 
 // =========================================================
-// 5. START SERVER
+// VERCEL HANDLER
 // =========================================================
 
-server.listen(PORT, () => {
+module.exports = handleRequest;
 
-    console.log('');
-    console.log('==============================================');
-    console.log('        NIRVAHANA SERVER STARTED');
-    console.log('==============================================');
-    console.log(`Server: http://localhost:${PORT}`);
 
-    if (CARTO_API_KEY) {
-        console.log('CARTO API Key: CONFIGURED');
-    } else {
-        console.log('CARTO API Key: NOT CONFIGURED');
-    }
+// =========================================================
+// LOCAL DEVELOPMENT
+// =========================================================
 
-    console.log('==============================================');
-    console.log('');
+if (require.main === module) {
 
-});
+    const server =
+        http.createServer(handleRequest);
+
+
+    server.listen(PORT, () => {
+
+        console.log("");
+
+        console.log(
+            "=============================================="
+        );
+
+        console.log(
+            "        NIRVAHANA SERVER STARTED"
+        );
+
+        console.log(
+            "=============================================="
+        );
+
+        console.log(
+            `Server: http://localhost:${PORT}`
+        );
+
+
+        if (CARTO_API_KEY) {
+
+            console.log(
+                "CARTO API Key: CONFIGURED"
+            );
+
+        } else {
+
+            console.log(
+                "CARTO API Key: NOT CONFIGURED"
+            );
+        }
+
+
+        console.log(
+            "=============================================="
+        );
+
+        console.log("");
+
+    });
+}
