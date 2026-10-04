@@ -1,352 +1,294 @@
-require('dotenv').config({
-    path: require('path').join(__dirname, '.env.local')
+const http = require("http");
+const fs = require("fs");
+const path = require("path");
+
+// Load .env.local when running locally
+require("dotenv").config({
+    path: path.join(__dirname, ".env.local")
 });
 
-const http = require('http');
-const fs = require('fs');
-const path = require('path');
-
 const PORT = process.env.PORT || 3001;
-const CARTO_API_KEY = process.env.CARTO_API_KEY || '';
 
-const server = http.createServer((req, res) => {
-
-    console.log(`[HTTP] ${req.method} ${req.url}`);
-
-    const parsedUrl = new URL(
-        req.url,
-        `http://${req.headers.host || 'localhost:3001'}`
-    );
-
-    let pathname = parsedUrl.pathname;
-
-    if (pathname.length > 1 && pathname.endsWith('/')) {
-        pathname = pathname.slice(0, -1);
-    }
-
-
-    // =========================================================
-    // 1. CARTO GIS CONFIG API
-    // =========================================================
-
-    if (pathname === '/api/gis/config' && req.method === 'GET') {
-
-        res.writeHead(200, {
-            'Content-Type': 'application/json'
-        });
-
-        const tileLayerUrl =
-            `https://basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png` +
-            `?key=${CARTO_API_KEY}`;
-
-        res.end(JSON.stringify({
-            tileLayerUrl: tileLayerUrl
-        }));
-
-        return;
-    }
-
-
-    // =========================================================
-    // 2. CARTO STATUS API
-    // =========================================================
-
-    if (pathname === '/api/gis/status' && req.method === 'GET') {
-
-        res.writeHead(200, {
-            'Content-Type': 'application/json'
-        });
-
-        res.end(JSON.stringify({
-            configured: CARTO_API_KEY.length > 0
-        }));
-
-        return;
-    }
-
-
-    // =========================================================
-    // 3. AI COPILOT API
-    // =========================================================
-
-    if (pathname === '/api/ai/copilot' && req.method === 'POST') {
-
-        let body = '';
-
-        req.on('data', chunk => {
-            body += chunk;
-        });
-
-        req.on('end', () => {
-
-            try {
-
-                const data = JSON.parse(body || '{}');
-
-                const prompt = (data.prompt || '').trim();
-                const promptLower = prompt.toLowerCase();
-
-                const bldg =
-                    data.buildingContext?.name || 'TechPark Alpha';
-
-                let reply = '';
-
-
-                // =================================================
-                // GREETING
-                // =================================================
-
-                if (
-                    promptLower.includes('hi') ||
-                    promptLower.includes('hello') ||
-                    promptLower.includes('hey')
-                ) {
-
-                    reply =
-                        `Hello! I'm your Nirvahana AI assistant for ${bldg}. ` +
-                        `How can I assist you with microgrid frequency stability, ` +
-                        `CARTO GIS mapping, or energy management today?`;
-                }
-
-
-                // =================================================
-                // FREQUENCY / VOLTAGE / STABILITY
-                // =================================================
-
-                else if (
-                    promptLower.includes('freq') ||
-                    promptLower.includes('voltage') ||
-                    promptLower.includes('stability') ||
-                    promptLower.includes('microgrid')
-                ) {
-
-                    reply =
-                        `Microgrid frequency at ${bldg} is locked at 50.01 Hz ` +
-                        `with bus voltage at 415.2 V. Closed-loop islanding is ` +
-                        `fully operational and synchronized.`;
-                }
-
-
-                // =================================================
-                // PEAK SHAVING / COST / TARIFF
-                // =================================================
-
-                else if (
-                    promptLower.includes('peak') ||
-                    promptLower.includes('shaving') ||
-                    promptLower.includes('cost') ||
-                    promptLower.includes('tariff')
-                ) {
-
-                    reply =
-                        `To minimize demand charges during TOU peak hours ` +
-                        `(18:00 - 22:00) at ${bldg}, discharge 50 kW from BESS ` +
-                        `and pre-cool thermal zones by 1.5°C during solar peak. ` +
-                        `Projected daily savings: ₹3,400.`;
-                }
-
-
-                // =================================================
-                // HVAC / TEMPERATURE / COOLING / CHILLER / ZONE
-                // =================================================
-
-                else if (
-                    promptLower.includes('hvac') ||
-                    promptLower.includes('temp') ||
-                    promptLower.includes('cooling') ||
-                    promptLower.includes('chiller') ||
-                    promptLower.includes('zone')
-                ) {
-
-                    reply =
-                        `Chiller plant efficiency at ${bldg} is operating at ` +
-                        `0.62 kW/TR. Zone-A VAV damper is 68% open, delivering ` +
-                        `1,450 CFM airflow adhering to ASHRAE 62.1.`;
-                }
-
-
-                // =================================================
-                // BATTERY / BESS
-                // =================================================
-
-                else if (
-                    promptLower.includes('battery') ||
-                    promptLower.includes('bess')
-                ) {
-
-                    reply =
-                        `BESS is currently at 84.2% SoC, discharging 35 kW ` +
-                        `to shave peak load. Grid frequency stability is maintained ` +
-                        `within optimal limits.`;
-                }
-
-
-                // =================================================
-                // DEFAULT RESPONSE
-                // =================================================
-
-                else {
-
-                    reply =
-                        `I'm analyzing your query regarding "${prompt}" for ${bldg}. ` +
-                        `CARTO GIS map coordinates, microgrid frequency stability, ` +
-                        `and telemetry parameters are fully synchronized and ` +
-                        `operating normally.`;
-                }
-
-
-                // =================================================
-                // SEND AI RESPONSE
-                // =================================================
-
-                res.writeHead(200, {
-                    'Content-Type': 'application/json'
-                });
-
-                res.end(JSON.stringify({
-                    choices: [
-                        {
-                            message: {
-                                content: reply
-                            }
-                        }
-                    ]
-                }));
-
-            } catch (err) {
-
-                console.error('[AI ERROR]', err);
-
-                res.writeHead(200, {
-                    'Content-Type': 'application/json'
-                });
-
-                res.end(JSON.stringify({
-                    choices: [
-                        {
-                            message: {
-                                content:
-                                    'All microgrid and telemetry systems are online and fully operational!'
-                            }
-                        }
-                    ]
-                }));
-            }
-        });
-
-        return;
-    }
-
-
-    // =========================================================
-    // 4. STATIC FILE SERVING
-    // =========================================================
-
-    let safePath =
-        pathname === '/'
-            ? 'index.html'
-            : pathname;
-
-    if (safePath.startsWith('/')) {
-        safePath = safePath.slice(1);
-    }
-
-    const filePath = path.join(__dirname, safePath);
-
-
-    fs.readFile(filePath, (err, content) => {
-
-        if (err) {
-
-            console.error('[FILE ERROR]', err.message);
-
+const CARTO_API_KEY = process.env.CARTO_API_KEY || "";
+
+const MIME_TYPES = {
+    ".html": "text/html",
+    ".js": "application/javascript",
+    ".css": "text/css",
+    ".json": "application/json",
+    ".png": "image/png",
+    ".jpg": "image/jpeg",
+    ".jpeg": "image/jpeg",
+    ".svg": "image/svg+xml",
+    ".ico": "image/x-icon",
+    ".webp": "image/webp",
+    ".gif": "image/gif"
+};
+
+
+function sendJSON(res, statusCode, data) {
+    res.writeHead(statusCode, {
+        "Content-Type": "application/json",
+        "Access-Control-Allow-Origin": "*"
+    });
+
+    res.end(JSON.stringify(data));
+}
+
+
+function serveFile(res, filePath) {
+    fs.readFile(filePath, (error, data) => {
+        if (error) {
             res.writeHead(404, {
-                'Content-Type': 'application/json'
+                "Content-Type": "text/plain"
             });
 
-            res.end(JSON.stringify({
-                error: 'File not found: ' + pathname
-            }));
-
+            res.end("File not found");
             return;
         }
 
-
         const ext = path.extname(filePath).toLowerCase();
-
-        let contentType = 'application/octet-stream';
-
-
-        if (ext === '.html') {
-            contentType = 'text/html';
-        }
-
-        else if (ext === '.js') {
-            contentType = 'text/javascript';
-        }
-
-        else if (ext === '.css') {
-            contentType = 'text/css';
-        }
-
-        else if (ext === '.json') {
-            contentType = 'application/json';
-        }
-
-        else if (ext === '.png') {
-            contentType = 'image/png';
-        }
-
-        else if (ext === '.jpg' || ext === '.jpeg') {
-            contentType = 'image/jpeg';
-        }
-
-        else if (ext === '.svg') {
-            contentType = 'image/svg+xml';
-        }
-
-        else if (ext === '.ico') {
-            contentType = 'image/x-icon';
-        }
-
-        else if (ext === '.webp') {
-            contentType = 'image/webp';
-        }
-
-        else if (ext === '.gif') {
-            contentType = 'image/gif';
-        }
-
+        const contentType = MIME_TYPES[ext] || "application/octet-stream";
 
         res.writeHead(200, {
-            'Content-Type': contentType
+            "Content-Type": contentType
         });
 
-        res.end(content);
+        res.end(data);
     });
+}
 
-});
 
+async function handleRequest(req, res) {
 
-// =========================================================
-// 5. START SERVER
-// =========================================================
+    // CORS
+    res.setHeader("Access-Control-Allow-Origin", "*");
+    res.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
+    res.setHeader(
+        "Access-Control-Allow-Headers",
+        "Content-Type, Authorization"
+    );
 
-server.listen(PORT, () => {
-
-    console.log('');
-    console.log('==============================================');
-    console.log('        NIRVAHANA SERVER STARTED');
-    console.log('==============================================');
-    console.log(`Server: http://localhost:${PORT}`);
-
-    if (CARTO_API_KEY) {
-        console.log('CARTO API Key: CONFIGURED');
-    } else {
-        console.log('CARTO API Key: NOT CONFIGURED');
+    // Handle preflight requests
+    if (req.method === "OPTIONS") {
+        res.writeHead(204);
+        res.end();
+        return;
     }
 
-    console.log('==============================================');
-    console.log('');
 
-});
+    // ================================
+    // CARTO GIS CONFIG
+    // ================================
+
+    if (req.method === "GET" && req.url === "/api/gis/config") {
+
+        sendJSON(res, 200, {
+            tileUrl:
+                `https://basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png?key=${CARTO_API_KEY}`
+        });
+
+        return;
+    }
+
+
+    // ================================
+    // CARTO STATUS
+    // ================================
+
+    if (req.method === "GET" && req.url === "/api/gis/status") {
+
+        sendJSON(res, 200, {
+            configured: CARTO_API_KEY.length > 0
+        });
+
+        return;
+    }
+
+
+    // ================================
+    // AI COPILOT
+    // ================================
+
+    if (req.method === "POST" && req.url === "/api/ai/copilot") {
+
+        let body = "";
+
+        req.on("data", chunk => {
+            body += chunk.toString();
+        });
+
+        req.on("end", () => {
+
+            let query = "";
+
+            try {
+                const parsedBody = JSON.parse(body);
+                query = parsedBody.query || "";
+            } catch (error) {
+                query = "";
+            }
+
+            const lowerQuery = query.toLowerCase();
+
+            let response;
+
+
+            // Greeting
+            if (
+                lowerQuery.includes("hello") ||
+                lowerQuery.includes("hi") ||
+                lowerQuery.includes("hey")
+            ) {
+
+                response = {
+                    role: "assistant",
+                    content:
+                        "Hello! I'm Nirvahana AI Copilot. I can help you analyze building energy, HVAC, grid stability, batteries, and microgrid operations."
+                };
+            }
+
+
+            // Frequency / Voltage / Stability / Microgrid
+            else if (
+                lowerQuery.includes("freq") ||
+                lowerQuery.includes("voltage") ||
+                lowerQuery.includes("stability") ||
+                lowerQuery.includes("microgrid")
+            ) {
+
+                response = {
+                    role: "assistant",
+                    content:
+                        "Current grid conditions are stable. Frequency is 50.01 Hz and voltage is 415.2 V."
+                };
+            }
+
+
+            // Peak shaving / Cost / Tariff
+            else if (
+                lowerQuery.includes("peak") ||
+                lowerQuery.includes("shaving") ||
+                lowerQuery.includes("cost") ||
+                lowerQuery.includes("tariff")
+            ) {
+
+                response = {
+                    role: "assistant",
+                    content:
+                        "TOU peak period is 18:00–22:00. Recommended strategy: use the BESS at 50 kW, pre-cool the building by 1.5°C, and shift flexible loads. Estimated savings are ₹3,400."
+                };
+            }
+
+
+            // HVAC / Temperature / Cooling / Chiller / Zone
+            else if (
+                lowerQuery.includes("hvac") ||
+                lowerQuery.includes("temp") ||
+                lowerQuery.includes("cooling") ||
+                lowerQuery.includes("chiller") ||
+                lowerQuery.includes("zone")
+            ) {
+
+                response = {
+                    role: "assistant",
+                    content:
+                        "HVAC performance is currently stable. Cooling efficiency is 0.62 kW/TR, VAV operation is at 68%, and airflow is approximately 1,450 CFM."
+                };
+            }
+
+
+            // Battery / BESS
+            else if (
+                lowerQuery.includes("battery") ||
+                lowerQuery.includes("bess")
+            ) {
+
+                response = {
+                    role: "assistant",
+                    content:
+                        "The BESS is currently at 84.2% state of charge and can discharge at approximately 35 kW."
+                };
+            }
+
+
+            // Default
+            else {
+
+                response = {
+                    role: "assistant",
+                    content:
+                        `I'm analyzing your query: "${query}". Nirvahana can provide insights into energy consumption, HVAC performance, grid stability, batteries, and building operations.`
+                };
+            }
+
+
+            sendJSON(res, 200, response);
+        });
+
+        return;
+    }
+
+
+    // ================================
+    // STATIC FILE SERVING
+    // ================================
+
+    let requestedPath = req.url.split("?")[0];
+
+    if (requestedPath === "/") {
+        requestedPath = "/index.html";
+    }
+
+    const filePath = path.join(
+        __dirname,
+        requestedPath
+    );
+
+    // Prevent path traversal
+    if (!filePath.startsWith(__dirname)) {
+        res.writeHead(403, {
+            "Content-Type": "text/plain"
+        });
+
+        res.end("Forbidden");
+        return;
+    }
+
+    serveFile(res, filePath);
+}
+
+
+// ========================================
+// VERCEL HANDLER
+// ========================================
+
+module.exports = handleRequest;
+
+
+// ========================================
+// LOCAL DEVELOPMENT
+// ========================================
+
+if (require.main === module) {
+
+    const server = http.createServer(handleRequest);
+
+    server.listen(PORT, () => {
+        console.log("");
+        console.log("======================================");
+        console.log("       NIRVAHANA SERVER");
+        console.log("======================================");
+        console.log(`Server running on port ${PORT}`);
+        console.log(
+            `CARTO API Key: ${
+                CARTO_API_KEY.length > 0
+                    ? "CONFIGURED"
+                    : "NOT CONFIGURED"
+            }`
+        );
+        console.log("======================================");
+        console.log("");
+    });
+}
+
