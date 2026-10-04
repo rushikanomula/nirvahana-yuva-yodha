@@ -1,0 +1,1078 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nirvahana Enterprise Command Center | CARTO GIS & Mixtral 8x7b</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Three.js & GLTFLoader -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+    <!-- Leaflet GIS Map -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap');
+        body { font-family: 'Plus Jakarta Sans', sans-serif; }
+        .font-mono { font-family: 'JetBrains Mono', monospace; }
+        .leaflet-container { background: #0f172a !important; width: 100%; height: 100%; border-radius: 0.75rem; }
+    </style>
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen flex flex-col">
+    <!-- Top Header Bar -->
+    <header class="bg-slate-900 border-b border-slate-800 px-6 py-4 flex items-center justify-between sticky top-0 z-50">
+        <div class="flex items-center space-x-3">
+            <div class="bg-emerald-500/10 border border-emerald-500/30 p-2 rounded-xl text-emerald-400">
+                <i data-lucide="cpu" class="w-6 h-6"></i>
+            </div>
+            <div>
+                <h1 class="text-xl font-bold tracking-tight text-white flex items-center gap-2">
+                    NIRVAHANA <span class="text-xs bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 px-2 py-0.5 rounded-full font-mono">CARTO + GROQ v2.6</span>
+                </h1>
+                <p class="text-xs text-slate-400">Enterprise Smart Building GIS & AI Copilot</p>
+            </div>
+        </div>
+
+        <div class="flex items-center space-x-3">
+
+
+            <!-- Building Selector -->
+            <div class="flex items-center bg-slate-800/80 border border-slate-700/60 rounded-xl px-3 py-1.5">
+                <i data-lucide="building-2" class="w-4 h-4 text-emerald-400 mr-2"></i>
+                <select id="buildingSelector" onchange="switchBuilding(this.value)" class="bg-transparent text-sm text-slate-200 focus:outline-none cursor-pointer">
+                    <option value="bldg_1" class="bg-slate-900 text-white">TechPark Alpha (Bangalore)</option>
+                    <option value="bldg_2" class="bg-slate-900 text-white">CyberTower Gamma (Hyderabad)</option>
+                    <option value="bldg_3" class="bg-slate-900 text-white">Sutardja Dai Hall (UC Berkeley)</option>
+                </select>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Dashboard Layout -->
+    <div class="flex flex-1 overflow-hidden">
+        <!-- Sidebar Navigation -->
+        <aside class="w-64 bg-slate-900/60 border-r border-slate-800 flex flex-col justify-between p-4">
+            <nav class="space-y-1.5">
+                <button onclick="switchSection('dashboard')" id="nav-dashboard" class="w-full flex items-center space-x-3 px-3.5 py-2.5 rounded-xl text-sm font-medium bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 transition-all">
+                    <i data-lucide="layout-dashboard" class="w-4 h-4"></i>
+                    <span>Command Dashboard</span>
+                </button>
+                <button onclick="switchSection('gis')" id="nav-gis" class="w-full flex items-center space-x-3 px-3.5 py-2.5 rounded-xl text-sm font-medium text-slate-400 hover:text-white hover:bg-slate-800/50 transition-all">
+                    <i data-lucide="map" class="w-4 h-4"></i>
+                    <span>CARTO GIS & AI Chat</span>
+                </button>
+                <button onclick="switchSection('bim')" id="nav-bim" class="w-full flex items-center space-x-3 px-3.5 py-2.5 rounded-xl text-sm font-medium text-slate-400 hover:text-white hover:bg-slate-800/50 transition-all">
+                    <i data-lucide="box" class="w-4 h-4"></i>
+                    <span>3D BIM Spatial Twin</span>
+                </button>
+                <button onclick="switchSection('analytics')" id="nav-analytics" class="w-full flex items-center space-x-3 px-3.5 py-2.5 rounded-xl text-sm font-medium text-slate-400 hover:text-white hover:bg-slate-800/50 transition-all">
+                    <i data-lucide="line-chart" class="w-4 h-4"></i>
+                    <span>Energy & Forecasting</span>
+                </button>
+                <button onclick="switchSection('cmms')" id="nav-cmms" class="w-full flex items-center space-x-3 px-3.5 py-2.5 rounded-xl text-sm font-medium text-slate-400 hover:text-white hover:bg-slate-800/50 transition-all">
+                    <i data-lucide="wrench" class="w-4 h-4"></i>
+                    <span>CMMS Work Orders</span>
+                </button>
+            
+                <button onclick="switchSection('microgrid')" id="nav-microgrid" class="w-full flex items-center space-x-3 px-3.5 py-2.5 rounded-xl text-sm font-medium text-slate-400 hover:text-white hover:bg-slate-800/50 transition-all">
+                    <i data-lucide="battery-charging" class="w-4 h-4"></i>
+                    <span>Microgrid & ESS Dispatch</span>
+                </button>
+</nav>
+
+            <div class="bg-slate-900 border border-slate-800 p-3.5 rounded-xl">
+                <div class="flex items-center justify-between text-xs text-slate-400 mb-1">
+                    <span>Edge Ingestion</span>
+                    <span class="text-emerald-400 font-mono">MQTT wss://</span>
+                </div>
+                <div class="text-sm font-semibold text-white truncate" id="activeBuildingName">TechPark Alpha</div>
+                <div class="text-xs text-slate-500 mt-0.5">BEE / ECBC Compliant</div>
+            </div>
+        </aside>
+
+        <!-- Main Content Area -->
+        <main class="flex-1 overflow-y-auto p-6 bg-slate-950">
+            <!-- SECTION: COMMAND DASHBOARD -->
+            <section id="section-dashboard" class="space-y-6">
+                <!-- KPI Strips -->
+                <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                    <div class="bg-slate-900/80 border border-slate-800 p-4 rounded-2xl relative overflow-hidden">
+                        <div class="flex items-center justify-between text-slate-400 mb-2">
+                            <span class="text-xs font-semibold uppercase tracking-wider">Total Power Draw</span>
+                            <i data-lucide="zap" class="w-4 h-4 text-amber-400"></i>
+                        </div>
+                        <div class="text-2xl font-bold font-mono text-white" id="kpi-power">142.4 kW</div>
+                        <div class="text-xs text-emerald-400 mt-1 flex items-center gap-1">
+                            <i data-lucide="trending-down" class="w-3 h-3"></i> -8.4% vs yesterday
+                        </div>
+                    </div>
+
+                    <div class="bg-slate-900/80 border border-slate-800 p-4 rounded-2xl relative overflow-hidden">
+                        <div class="flex items-center justify-between text-slate-400 mb-2">
+                            <span class="text-xs font-semibold uppercase tracking-wider">Solar PV Generation</span>
+                            <i data-lucide="sun" class="w-4 h-4 text-emerald-400"></i>
+                        </div>
+                        <div class="text-2xl font-bold font-mono text-white" id="kpi-solar">48.2 kW</div>
+                        <div class="text-xs text-emerald-400 mt-1 flex items-center gap-1">
+                            <i data-lucide="zap" class="w-3 h-3"></i> 33.8% self-consumption
+                        </div>
+                    </div>
+
+                    <div class="bg-slate-900/80 border border-slate-800 p-4 rounded-2xl relative overflow-hidden">
+                        <div class="flex items-center justify-between text-slate-400 mb-2">
+                            <span class="text-xs font-semibold uppercase tracking-wider">Avg Zone Temperature</span>
+                            <i data-lucide="thermometer" class="w-4 h-4 text-cyan-400"></i>
+                        </div>
+                        <div class="text-2xl font-bold font-mono text-white" id="kpi-temp">23.8°C</div>
+                        <div class="text-xs text-cyan-400 mt-1">ASHRAE Standard Optimal</div>
+                    </div>
+
+                    <div class="bg-slate-900/80 border border-slate-800 p-4 rounded-2xl relative overflow-hidden">
+                        <div class="flex items-center justify-between text-slate-400 mb-2">
+                            <span class="text-xs font-semibold uppercase tracking-wider">Active FDD Faults</span>
+                            <i data-lucide="alert-triangle" class="w-4 h-4 text-rose-400"></i>
+                        </div>
+                        <div class="text-2xl font-bold font-mono text-white" id="kpi-faults">2 Open</div>
+                        <div class="text-xs text-rose-400 mt-1">Auto-dispatch ready</div>
+                    </div>
+                </div>
+
+                <!-- Live Power & Mixtral 8x7b Chat -->
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                    <div class="lg:col-span-2 bg-slate-900/80 border border-slate-800 p-5 rounded-2xl">
+                        <div class="flex items-center justify-between mb-4">
+                            <div>
+                                <h3 class="font-bold text-white text-base">Real-Time Power Inflow & Solar PV Generation</h3>
+                                <p class="text-xs text-slate-400">Live TimescaleDB telemetry stream (kW)</p>
+                            </div>
+                            <span class="px-2.5 py-1 bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 rounded-lg text-xs font-mono">Live MQTT</span>
+                        </div>
+                        <div class="h-72 w-full">
+                            <canvas id="powerInflowChart"></canvas>
+                        </div>
+                    </div>
+
+                    <!-- Mixtral 8x7b Copilot Chat Box -->
+                    <div class="bg-slate-900/80 border border-slate-800 p-5 rounded-2xl flex flex-col justify-between h-[390px]">
+                        <div>
+                            <div class="flex items-center justify-between mb-3">
+                                <h3 class="font-bold text-white text-base flex items-center gap-2">
+                                    <i data-lucide="bot" class="w-5 h-5 text-purple-400"></i> Mixtral 8x7b Copilot
+                                </h3>
+                                <span class="text-xs bg-purple-500/20 text-purple-300 px-2 py-0.5 rounded-full font-mono">Mixtral 8x7b</span>
+                            </div>
+                            <div id="chatMessages" class="h-56 overflow-y-auto space-y-2.5 pr-1 text-xs bg-slate-950/60 p-3 rounded-xl border border-slate-800/80">
+                                <div class="bg-slate-800/80 p-2.5 rounded-lg text-slate-300">
+                                    <span class="text-purple-400 font-semibold block mb-0.5">Nirvahana Mixtral Agent</span>
+                                    Hello! Ask me to analyze telemetry anomalies, optimize HVAC setpoints, or run peak-shaving simulations.
+                                </div>
+                            </div>
+                        </div>
+                        <div class="flex items-center space-x-2 mt-3">
+                            <input type="text" id="chatInput" placeholder="Ask Mixtral 8x7b..." onkeypress="if(event.key==='Enter') sendGroqMessage()" class="flex-1 bg-slate-950 border border-slate-700/80 rounded-xl px-3 py-2 text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-purple-500">
+                            <button onclick="sendGroqMessage()" class="bg-purple-600 hover:bg-purple-700 text-white p-2 rounded-xl transition-all">
+                                <i data-lucide="send" class="w-4 h-4"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- SECTION: CARTO GIS & AI CHAT COMBINED -->
+            <section id="section-gis" class="space-y-6 hidden">
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                    <!-- Left Column: Map Controls & Building List -->
+                    <div class="bg-slate-900/80 border border-slate-800 p-5 rounded-2xl space-y-4">
+                        <div>
+                            <h3 class="font-bold text-white text-lg flex items-center gap-2">
+                                <i data-lucide="map-pin" class="w-5 h-5 text-cyan-400"></i> CARTO GIS Portfolio
+                            </h3>
+                            <p class="text-xs text-slate-400 mt-1">Select a building pin or asset to load its digital twin and prompt Mixtral 8x7b.</p>
+                        </div>
+                        <div class="space-y-3">
+                            <div onclick="switchBuilding('bldg_1'); updateMapFocus(12.9352, 77.6245);" class="bg-slate-800/80 border border-emerald-500/40 p-3.5 rounded-xl cursor-pointer hover:bg-slate-800 transition-all">
+                                <div class="font-bold text-white text-sm">TechPark Alpha (Bangalore)</div>
+                                <div class="text-xs text-slate-400 mt-1">Lat: 12.9352, Lon: 77.6245 • 45,000 m²</div>
+                                <div class="mt-2 text-xs text-emerald-400 font-mono">Load Telemetry & GIS →</div>
+                            </div>
+                            <div onclick="switchBuilding('bldg_2'); updateMapFocus(17.4483, 78.3915);" class="bg-slate-800/80 border border-slate-700/60 p-3.5 rounded-xl cursor-pointer hover:bg-slate-800 transition-all">
+                                <div class="font-bold text-white text-sm">CyberTower Gamma (Hyderabad)</div>
+                                <div class="text-xs text-slate-400 mt-1">Lat: 17.4483, Lon: 78.3915 • 62,000 m²</div>
+                                <div class="mt-2 text-xs text-cyan-400 font-mono">Load Telemetry & GIS →</div>
+                            </div>
+                            <div onclick="switchBuilding('bldg_3'); updateMapFocus(37.8749, -122.2585);" class="bg-slate-800/80 border border-slate-700/60 p-3.5 rounded-xl cursor-pointer hover:bg-slate-800 transition-all">
+                                <div class="font-bold text-white text-sm">Sutardja Dai Hall (UC Berkeley)</div>
+                                <div class="text-xs text-slate-400 mt-1">Lat: 37.8749, Lon: -122.2585 • Benchmark Twin</div>
+                                <div class="mt-2 text-xs text-cyan-400 font-mono">Load Telemetry & GIS →</div>
+                            </div>
+                        </div>
+
+                        <div class="bg-slate-950 p-3.5 rounded-xl border border-slate-800 mt-4">
+                            <h4 class="text-xs font-bold text-purple-400 mb-1 flex items-center gap-1">
+                                <i data-lucide="sparkles" class="w-3.5 h-3.5"></i> Quick GIS AI Prompt
+                            </h4>
+                            <p class="text-xs text-slate-400 mb-2">Ask Mixtral 8x7b about this selected building's regional climate or grid profile:</p>
+                            <button onclick="askGroqAboutCurrentBuilding()" class="w-full bg-purple-600/30 hover:bg-purple-600/50 border border-purple-500/40 text-purple-200 text-xs font-semibold py-2 rounded-lg transition-all">
+                                Analyze Building Location with AI
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Right Column: CARTO Map + Chat Widget -->
+                    <div class="lg:col-span-2 grid grid-cols-1 gap-6">
+                        <!-- CARTO Map Container -->
+                        <div class="bg-slate-900/80 border border-slate-800 p-5 rounded-2xl flex flex-col h-[400px]">
+                            <div class="flex items-center justify-between mb-3">
+                                <h3 class="font-bold text-white text-base">CARTO Vector / Dark Matter GIS View</h3>
+                                <span class="text-xs bg-cyan-500/20 text-cyan-400 border border-cyan-500/40 px-2.5 py-0.5 rounded-full font-mono">CARTO Basemap Active</span>
+                            </div>
+                            <div class="flex-1 w-full rounded-xl overflow-hidden border border-slate-800" id="cartoMapContainer"></div>
+                        </div>
+
+                        <!-- Secondary Chat Box for GIS context -->
+                        <div class="bg-slate-900/80 border border-slate-800 p-5 rounded-2xl flex flex-col h-[300px]">
+                            <div class="flex items-center justify-between mb-2">
+                                <h3 class="font-bold text-white text-sm flex items-center gap-2">
+                                    <i data-lucide="bot" class="w-4 h-4 text-purple-400"></i> GIS AI Assistant & Chatbot
+                                </h3>
+                                <span class="text-xs text-slate-400 font-mono">Connected to Groq Mixtral 8x7b (Secure Proxy)</span>
+                            </div>
+                            <div id="gisChatMessages" class="flex-1 overflow-y-auto space-y-2 pr-1 text-xs bg-slate-950/60 p-3 rounded-xl border border-slate-800/80">
+                                <div class="bg-slate-800/80 p-2.5 rounded-lg text-slate-300">
+                                    <span class="text-purple-400 font-semibold block mb-0.5">Nirvahana GIS Copilot</span>
+                                    Click any building pin on the CARTO map above or ask questions here about regional energy grids, solar potential, or cooling load distribution.
+                                </div>
+                            </div>
+                            <div class="flex items-center space-x-2 mt-3">
+                                <input type="text" id="gisChatInput" placeholder="Ask AI about this building location..." onkeypress="if(event.key==='Enter') sendGisGroqMessage()" class="flex-1 bg-slate-950 border border-slate-700/80 rounded-xl px-3 py-2 text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-purple-500">
+                                <button onclick="sendGisGroqMessage()" class="bg-purple-600 hover:bg-purple-700 text-white p-2 rounded-xl transition-all">
+                                    <i data-lucide="send" class="w-4 h-4"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- SECTION: 3D BIM SPATIAL TWIN -->
+            <section id="section-bim" class="space-y-6 hidden">
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                    <div class="lg:col-span-2 bg-slate-900/80 border border-slate-800 p-5 rounded-2xl flex flex-col h-[520px]">
+                        <div class="flex items-center justify-between mb-3">
+                            <div>
+                                <h3 class="font-bold text-white text-base flex items-center gap-2">
+                                    <i data-lucide="box" class="w-5 h-5 text-emerald-400"></i> Three.js BIM & Thermal Spatial Twin
+                                </h3>
+                                <p class="text-xs text-slate-400">Interactive floorplate telemetry & zone temperature mapping</p>
+                            </div>
+                            <div class="flex items-center space-x-2">
+                                <button onclick="setBimFloor(0)" class="px-2.5 py-1 bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 rounded-lg text-xs font-mono">Floor 1</button>
+                                <button onclick="setBimFloor(1)" class="px-2.5 py-1 bg-slate-800 text-slate-300 border border-slate-700 rounded-lg text-xs font-mono">Floor 2</button>
+                                <button onclick="setBimFloor(2)" class="px-2.5 py-1 bg-slate-800 text-slate-300 border border-slate-700 rounded-lg text-xs font-mono">Floor 3</button>
+                            </div>
+                        </div>
+                        <div id="threeCanvasContainer" class="flex-1 w-full bg-slate-950 rounded-xl relative border border-slate-800 overflow-hidden"></div>
+                    </div>
+
+                    <!-- BIM Zone Inspector Panel -->
+                    <div class="bg-slate-900/80 border border-slate-800 p-5 rounded-2xl flex flex-col justify-between">
+                        <div>
+                            <h3 class="font-bold text-white text-sm mb-3 flex items-center gap-2">
+                                <i data-lucide="sliders" class="w-4 h-4 text-cyan-400"></i> Zone Telemetry Inspector
+                            </h3>
+                            <div id="bimZoneDetails" class="space-y-3 text-xs bg-slate-950 p-4 rounded-xl border border-slate-800">
+                                <div class="flex justify-between text-slate-400"><span>Selected Zone:</span><span class="text-white font-mono font-semibold">Zone-A (Server & Workstations)</span></div>
+                                <div class="flex justify-between text-slate-400"><span>Airflow CFM:</span><span class="text-cyan-400 font-mono font-semibold">1,450 CFM</span></div>
+                                <div class="flex justify-between text-slate-400"><span>Supply Temp:</span><span class="text-emerald-400 font-mono font-semibold">18.2°C</span></div>
+                                <div class="flex justify-between text-slate-400"><span>Occupant Density:</span><span class="text-purple-400 font-mono font-semibold">34 People</span></div>
+                                <div class="flex justify-between text-slate-400"><span>Damper Position:</span><span class="text-amber-400 font-mono font-semibold">68% Open</span></div>
+                            </div>
+
+                            <div class="mt-4 space-y-3">
+                                <div>
+                                    <label class="text-xs text-slate-400 block mb-1">Override Zone Setpoint (°C)</label>
+                                    <div class="flex items-center space-x-2">
+                                        <input type="range" min="18" max="26" step="0.5" value="22" id="setpointSlider" oninput="updateBimSetpoint(this.value)" class="flex-1 accent-emerald-500">
+                                        <span id="setpointVal" class="text-xs font-mono text-emerald-400 font-bold">22.0°C</span>
+                                    </div>
+                                </div>
+                                <button onclick="triggerZoneFlush()" class="w-full bg-cyan-600 hover:bg-cyan-700 text-white text-xs font-semibold py-2.5 rounded-xl transition-all flex items-center justify-center gap-2">
+                                    <i data-lucide="refresh-cw" class="w-3.5 h-3.5"></i> Trigger VAV Purge Cycle
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="bg-emerald-500/10 border border-emerald-500/30 p-3 rounded-xl text-xs text-emerald-300">
+                            <span class="font-semibold block mb-0.5">ASHRAE 62.1 Ventilation Compliance</span>
+                            Air exchange rates meet indoor air quality standards across all active floors.
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- SECTION: ENERGY & FORECASTING -->
+            <section id="section-analytics" class="space-y-6 hidden">
+                <!-- Analytics Control Bar -->
+                <div class="bg-slate-900/80 border border-slate-800 p-4 rounded-2xl flex flex-wrap items-center justify-between gap-4">
+                    <div class="flex items-center space-x-3">
+                        <div class="bg-purple-500/10 border border-purple-500/30 p-2 rounded-xl text-purple-400">
+                            <i data-lucide="line-chart" class="w-5 h-5"></i>
+                        </div>
+                        <div>
+                            <h3 class="font-bold text-white text-base">Predictive Energy Analytics & Peak Shaving</h3>
+                            <p class="text-xs text-slate-400">AI-driven TimescaleDB forecasting models (LSTM / Prophet)</p>
+                        </div>
+                    </div>
+                    <div class="flex items-center space-x-3">
+                        <button onclick="exportTelemetryCSV()" class="bg-cyan-600 hover:bg-cyan-700 text-white px-3.5 py-2 rounded-xl text-xs font-semibold transition-all flex items-center gap-1.5">
+                            <i data-lucide="download" class="w-3.5 h-3.5"></i> Export Telemetry CSV
+                        </button>
+                        <select id="forecastModelSelector" onchange="switchForecastModel(this.value)" class="bg-slate-800 border border-slate-700 text-xs text-slate-200 px-3 py-2 rounded-xl focus:outline-none">
+                            <option value="lstm">LSTM Neural Net Model</option>
+                            <option value="prophet">Meta Prophet Time-Series</option>
+                            <option value="arima">ARIMA Statistical Model</option>
+                        </select>
+                        <button onclick="runPeakShavingSimulation()" class="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-xl text-xs font-semibold transition-all flex items-center gap-1.5">
+                            <i data-lucide="zap" class="w-3.5 h-3.5"></i> Run Peak Shaving Sim
+                        </button>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <div class="bg-slate-900/80 border border-slate-800 p-5 rounded-2xl">
+                        <h3 class="font-bold text-white text-base mb-4">24-Hour Power Demand Forecast & Baseline</h3>
+                        <div class="h-72 w-full"><canvas id="forecastChart"></canvas></div>
+                    </div>
+                    <div class="bg-slate-900/80 border border-slate-800 p-5 rounded-2xl">
+                        <h3 class="font-bold text-white text-base mb-4">Real-Time Subsystem Power Breakdown</h3>
+                        <div class="h-72 w-full"><canvas id="breakdownChart"></canvas></div>
+                    </div>
+                </div>
+
+                <!-- Tariff & Cost Optimization Table -->
+                <div class="bg-slate-900/80 border border-slate-800 p-5 rounded-2xl">
+                    <h3 class="font-bold text-white text-base mb-3">DISCOM Tariff Optimization & Demand Charges</h3>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left text-xs text-slate-300">
+                            <thead class="bg-slate-950 text-slate-400 uppercase font-mono border-b border-slate-800">
+                                <tr>
+                                    <th class="p-3">Time Window</th>
+                                    <th class="p-3">Tariff Category</th>
+                                    <th class="p-3">Rate (₹ / kWh)</th>
+                                    <th class="p-3">Projected Load (kW)</th>
+                                    <th class="p-3">AI Recommendation</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-slate-800/80 font-mono">
+                                <tr>
+                                    <td class="p-3 text-slate-400">06:00 - 10:00 (Morning Peak)</td>
+                                    <td class="p-3 text-amber-400">TOU Peak Tier</td>
+                                    <td class="p-3">₹11.50</td>
+                                    <td class="p-3">168.4 kW</td>
+                                    <td class="p-3 text-emerald-400">Pre-cool building at 05:00, coast chillers</td>
+                                </tr>
+                                <tr>
+                                    <td class="p-3 text-slate-400">10:00 - 17:00 (Solar Hours)</td>
+                                    <td class="p-3 text-emerald-400">Standard / PV Offset</td>
+                                    <td class="p-3">₹7.20</td>
+                                    <td class="p-3">142.0 kW</td>
+                                    <td class="p-3 text-cyan-400">Self-consumption active (48 kW solar utilized)</td>
+                                </tr>
+                                <tr>
+                                    <td class="p-3 text-slate-400">18:00 - 22:00 (Evening Peak)</td>
+                                    <td class="p-3 text-rose-400">High Demand Surcharge</td>
+                                    <td class="p-3">₹13.20</td>
+                                    <td class="p-3">195.0 kW</td>
+                                    <td class="p-3 text-amber-400">Discharge battery storage (50 kW)</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+            <!-- SECTION: CMMS WORK ORDERS -->
+            <section id="section-cmms" class="space-y-6 hidden">
+                <div class="bg-slate-900/80 border border-slate-800 p-5 rounded-2xl space-y-5">
+                    <div class="flex flex-wrap items-center justify-between gap-4">
+                        <div class="flex items-center space-x-3">
+                            <div class="bg-emerald-500/10 border border-emerald-500/30 p-2 rounded-xl text-emerald-400">
+                                <i data-lucide="wrench" class="w-5 h-5"></i>
+                            </div>
+                            <div>
+                                <h3 class="font-bold text-white text-base">Automated CMMS & FDD Work Order Dispatch</h3>
+                                <p class="text-xs text-slate-400">AI fault detection & automated technician task force routing</p>
+                            </div>
+                        </div>
+                        <div class="flex items-center space-x-2">
+                            <button onclick="injectIoTAnomaly()" class="bg-rose-600 hover:bg-rose-700 text-white px-4 py-2 rounded-xl text-xs font-semibold transition-all flex items-center gap-1.5">
+                                <i data-lucide="alert-octagon" class="w-4 h-4"></i> Inject IoT Anomaly
+                            </button>
+                            <button onclick="createNewWorkOrder()" class="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-xl text-xs font-semibold transition-all flex items-center gap-1.5">
+                                <i data-lucide="plus-circle" class="w-4 h-4"></i> Create New Work Order
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Work Order Stats -->
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div class="bg-slate-950 border border-slate-800 p-4 rounded-xl">
+                            <div class="text-xs text-slate-400 mb-1">Open FDD Anomalies</div>
+                            <div class="text-xl font-bold font-mono text-rose-400">2 Active</div>
+                        </div>
+                        <div class="bg-slate-950 border border-slate-800 p-4 rounded-xl">
+                            <div class="text-xs text-slate-400 mb-1">Dispatched Today</div>
+                            <div class="text-xl font-bold font-mono text-amber-400">5 Tickets</div>
+                        </div>
+                        <div class="bg-slate-950 border border-slate-800 p-4 rounded-xl">
+                            <div class="text-xs text-slate-400 mb-1">Avg Resolution Time</div>
+                            <div class="text-xl font-bold font-mono text-emerald-400">42 Minutes</div>
+                        </div>
+                    </div>
+
+                    <!-- Work Orders Table -->
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left text-xs text-slate-300">
+                            <thead class="bg-slate-950 text-slate-400 uppercase font-mono border-b border-slate-800">
+                                <tr>
+                                    <th class="p-3">Ticket ID</th>
+                                    <th class="p-3">Asset / Location</th>
+                                    <th class="p-3">Fault / Symptom</th>
+                                    <th class="p-3">Priority</th>
+                                    <th class="p-3">Assigned Tech</th>
+                                    <th class="p-3">Status</th>
+                                    <th class="p-3">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-slate-800/80 font-mono" id="cmmsTableBody">
+                                <tr>
+                                    <td class="p-3 text-cyan-400 font-semibold">WO-2026-881</td>
+                                    <td class="p-3 text-white">Chiller Plant #2 (Roof)</td>
+                                    <td class="p-3 text-slate-300">Compressor approach temp high (+3.2°C anomaly)</td>
+                                    <td class="p-3"><span class="px-2 py-0.5 bg-rose-500/20 text-rose-400 rounded-full text-[10px]">High</span></td>
+                                    <td class="p-3 text-slate-300">Ramesh K. (HVAC Specialist)</td>
+                                    <td class="p-3"><span class="px-2 py-0.5 bg-amber-500/20 text-amber-300 rounded-full text-[10px]">In Progress</span></td>
+                                    <td class="p-3">
+                                        <button onclick="resolveTicket('WO-2026-881')" class="px-2.5 py-1 bg-emerald-600/30 hover:bg-emerald-600/50 text-emerald-300 rounded-lg text-[11px] transition-all">Mark Resolved</button>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td class="p-3 text-cyan-400 font-semibold">WO-2026-882</td>
+                                    <td class="p-3 text-white">AHU Floor 3 (North Wing)</td>
+                                    <td class="p-3 text-slate-300">Damper actuator stuck at 45% open</td>
+                                    <td class="p-3"><span class="px-2 py-0.5 bg-amber-500/20 text-amber-400 rounded-full text-[10px]">Medium</span></td>
+                                    <td class="p-3 text-slate-300">Suresh M. (Electrical)</td>
+                                    <td class="p-3"><span class="px-2 py-0.5 bg-cyan-500/20 text-cyan-300 rounded-full text-[10px]">Dispatched</span></td>
+                                    <td class="p-3">
+                                        <button onclick="resolveTicket('WO-2026-882')" class="px-2.5 py-1 bg-emerald-600/30 hover:bg-emerald-600/50 text-emerald-300 rounded-lg text-[11px] transition-all">Mark Resolved</button>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+        
+            <!-- SECTION: MICROGRID & ESS DISPATCH -->
+            <section id="section-microgrid" class="space-y-6 hidden">
+                <div class="bg-slate-900/80 border border-slate-800 p-6 rounded-2xl space-y-6">
+                    <div class="flex flex-wrap items-center justify-between gap-4">
+                        <div class="flex items-center space-x-3">
+                            <div class="bg-emerald-500/10 border border-emerald-500/30 p-2.5 rounded-xl text-emerald-400">
+                                <i data-lucide="battery-charging" class="w-6 h-6"></i>
+                            </div>
+                            <div>
+                                <h3 class="font-bold text-white text-lg">Battery Energy Storage System (BESS) & Microgrid Dispatch</h3>
+                                <p class="text-xs text-slate-400">Real-time state of charge (SoC), peak shaving schedules, and microgrid islanding controls</p>
+                            </div>
+                        </div>
+                        <div class="flex items-center space-x-3">
+                            <span class="px-3 py-1.5 bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 rounded-xl text-xs font-mono font-bold">Grid Synchronized</span>
+                            <button onclick="triggerMicrogridIsland()" class="bg-amber-600 hover:bg-amber-700 text-white px-4 py-2 rounded-xl text-xs font-semibold transition-all flex items-center gap-1.5">
+                                <i data-lucide="shield-alert" class="w-4 h-4"></i> Test Islanding Mode
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Microgrid Stats Grid -->
+                    <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                        <div class="bg-slate-950 border border-slate-800 p-4 rounded-xl">
+                            <div class="text-xs text-slate-400 mb-1">BESS State of Charge</div>
+                            <div class="text-2xl font-bold font-mono text-emerald-400" id="bessSoc">84.2%</div>
+                            <div class="w-full bg-slate-800 h-1.5 rounded-full mt-2 overflow-hidden">
+                                <div class="bg-emerald-500 h-full w-[84%]"></div>
+                            </div>
+                        </div>
+                        <div class="bg-slate-950 border border-slate-800 p-4 rounded-xl">
+                            <div class="text-xs text-slate-400 mb-1">Current ESS Power Flow</div>
+                            <div class="text-2xl font-bold font-mono text-cyan-400" id="bessPower">-35.0 kW</div>
+                            <div class="text-xs text-slate-500 mt-1">Discharging to offset peak load</div>
+                        </div>
+                        <div class="bg-slate-950 border border-slate-800 p-4 rounded-xl">
+                            <div class="text-xs text-slate-400 mb-1">Today's Carbon Offset</div>
+                            <div class="text-2xl font-bold font-mono text-purple-400">1.84 Tons</div>
+                            <div class="text-xs text-purple-400 mt-1">Equivalent to 84 trees planted</div>
+                        </div>
+                        <div class="bg-slate-950 border border-slate-800 p-4 rounded-xl">
+                            <div class="text-xs text-slate-400 mb-1">Projected Monthly ROI</div>
+                            <div class="text-2xl font-bold font-mono text-amber-400">₹1,02,400</div>
+                            <div class="text-xs text-emerald-400 mt-1">Demand charge reduction</div>
+                        </div>
+                    </div>
+
+                    <!-- Interactive Dispatch Controls & Live Graph -->
+                    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                        <div class="lg:col-span-1 bg-slate-950 border border-slate-800 p-5 rounded-xl space-y-4">
+                            <h4 class="font-bold text-white text-sm flex items-center gap-2">
+                                <i data-lucide="sliders" class="w-4 h-4 text-emerald-400"></i> BESS Manual Override
+                            </h4>
+                            <div>
+                                <label class="text-xs text-slate-400 block mb-1">Charge / Discharge Rate (kW)</label>
+                                <input type="range" min="-100" max="100" step="10" value="-35" id="bessSlider" oninput="updateBessDispatch(this.value)" class="w-full accent-emerald-500">
+                                <div class="flex justify-between text-xs font-mono text-slate-400 mt-1">
+                                    <span>Charge (100 kW)</span>
+                                    <span id="bessSliderVal" class="text-emerald-400 font-bold">-35 kW</span>
+                                    <span>Discharge (100 kW)</span>
+                                </div>
+                            </div>
+                            <div class="space-y-2 pt-2 border-t border-slate-800">
+                                <button onclick="setBessMode('auto')" class="w-full bg-emerald-600/20 hover:bg-emerald-600/40 border border-emerald-500/40 text-emerald-300 text-xs font-semibold py-2.5 rounded-lg transition-all">
+                                    Enable AI Auto-Dispatch (TOU Optimized)
+                                </button>
+                                <button onclick="setBessMode('eco')" class="w-full bg-cyan-600/20 hover:bg-cyan-600/40 border border-cyan-500/40 text-cyan-300 text-xs font-semibold py-2.5 rounded-lg transition-all">
+                                    Enable Zero-Export Eco Mode
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="lg:col-span-2 bg-slate-950 border border-slate-800 p-5 rounded-xl flex flex-col justify-between">
+                            <h4 class="font-bold text-white text-sm mb-3">Microgrid Frequency & Voltage Stability</h4>
+                            <div class="h-48 w-full"><canvas id="microgridChart"></canvas></div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+</main>
+    </div>
+
+    <!-- Application JavaScript Logic -->
+    <script>
+        let currentBuilding = 'bldg_1';
+        let cartoMap = null;
+        let cartoTileLayer = null;
+
+        const benchmarkDatasets = {
+            bldg_1: { name: "TechPark Alpha (Bangalore)", power: "142.4 kW", solar: "48.2 kW", temp: "23.8°C", lat: 12.9352, lon: 77.6245 },
+            bldg_2: { name: "CyberTower Gamma (Hyderabad)", power: "198.6 kW", solar: "65.0 kW", temp: "24.5°C", lat: 17.4483, lon: 78.3915 },
+            bldg_3: { name: "Sutardja Dai Hall (UC Berkeley)", power: "112.2 kW", solar: "30.0 kW", temp: "21.2°C", lat: 37.8749, lon: -122.2585 }
+        };
+
+                async function switchBuilding(bldgId) {
+            currentBuilding = bldgId;
+            const data = benchmarkDatasets[bldgId];
+            document.getElementById('activeBuildingName').innerText = data.name;
+            document.getElementById('buildingSelector').value = bldgId;
+
+            // Fetch live real-life telemetry and update DOM upon completion
+            await fetchRealLifeTelemetry(data.lat, data.lon, bldgId);
+        }
+
+        let analyticsInitialized = false;
+        let bimInitialized = false;
+
+        function switchSection(sectionId) {
+            ['dashboard', 'gis', 'bim', 'analytics', 'cmms', 'microgrid'].forEach(sec => {
+                document.getElementById(`section-${sec}`).classList.add('hidden');
+                const btn = document.getElementById(`nav-${sec}`);
+                if (btn) btn.className = "w-full flex items-center space-x-3 px-3.5 py-2.5 rounded-xl text-sm font-medium text-slate-400 hover:text-white hover:bg-slate-800/50 transition-all";
+            });
+            document.getElementById(`section-${sectionId}`).classList.remove('hidden');
+            const activeBtn = document.getElementById(`nav-${sectionId}`);
+            if (activeBtn) activeBtn.className = "w-full flex items-center space-x-3 px-3.5 py-2.5 rounded-xl text-sm font-medium bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 transition-all";
+
+            if (sectionId === 'gis') {
+                if (!cartoMap) {
+                    setTimeout(initCartoMap, 200);
+                } else {
+                    setTimeout(() => { cartoMap.invalidateSize(); }, 100);
+                }
+            }
+            if (sectionId === 'analytics' && !analyticsInitialized) {
+                analyticsInitialized = true;
+                setTimeout(initAnalyticsCharts, 200);
+            }
+            if (sectionId === 'bim' && !bimInitialized) {
+                bimInitialized = true;
+                setTimeout(initBimViewer, 200);
+            }
+            if (sectionId === 'microgrid') {
+                setTimeout(initMicrogridChart, 200);
+            }
+        }
+
+        function initAnalyticsCharts() {
+            const ctx1 = document.getElementById('forecastChart');
+            if (ctx1) {
+                new Chart(ctx1.getContext('2d'), {
+                    type: 'line',
+                    data: {
+                        labels: ['00:00', '02:00', '04:00', '06:00', '08:00', '10:00', '12:00', '14:00', '16:00', '18:00', '20:00', '22:00'],
+                        datasets: [
+                            { label: 'Forecasted Load (kW)', data: [115, 105, 98, 110, 145, 185, 215, 205, 190, 165, 140, 125], borderColor: '#a855f7', backgroundColor: 'rgba(168, 85, 247, 0.1)', fill: true, tension: 0.3 },
+                            { label: 'Baseline Limit (kW)', data: [180, 180, 180, 180, 180, 180, 180, 180, 180, 180, 180, 180], borderColor: '#f43f5e', borderDash: [5,5], fill: false }
+                        ]
+                    },
+                    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { labels: { color: '#cbd5e1' } } }, scales: { x: { ticks: { color: '#94a3b8' }, grid: { color: '#1e293b' } }, y: { ticks: { color: '#94a3b8' }, grid: { color: '#1e293b' } } } }
+                });
+            }
+
+            const ctx2 = document.getElementById('breakdownChart');
+            if (ctx2) {
+                new Chart(ctx2.getContext('2d'), {
+                    type: 'doughnut',
+                    data: {
+                        labels: ['HVAC Chillers', 'AHU Fans', 'Lighting & Plug Loads', 'Elevators & Pumps'],
+                        datasets: [{
+                            data: [52, 22, 18, 8],
+                            backgroundColor: ['#10b981', '#06b6d4', '#a855f7', '#f59e0b']
+                        }]
+                    },
+                    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom', labels: { color: '#cbd5e1' } } } }
+                });
+            }
+        }
+
+        function initBimViewer() {
+            const container = document.getElementById('threeCanvasContainer');
+            if (!container) return;
+            // Clear previous canvas if any
+            container.innerHTML = '';
+
+            const scene = new THREE.Scene();
+            scene.background = new THREE.Color(0x030712);
+
+            const camera = new THREE.PerspectiveCamera(45, container.clientWidth / container.clientHeight, 0.1, 1000);
+            camera.position.set(18, 22, 28);
+
+            const renderer = new THREE.WebGLRenderer({ antialias: true });
+            renderer.setSize(container.clientWidth, container.clientHeight);
+            container.appendChild(renderer.domElement);
+
+            const controls = new THREE.OrbitControls(camera, renderer.domElement);
+            controls.enableDamping = true;
+
+            // Add lighting
+            const ambientLight = new THREE.AmbientLight(0xffffff, 0.75);
+            scene.add(ambientLight);
+            const dirLight = new THREE.DirectionalLight(0xffffff, 0.9);
+            dirLight.position.set(25, 45, 25);
+            scene.add(dirLight);
+
+            // Create architectural floors with rooms, partitions, and workstations
+            const floorGroup = new THREE.Group();
+
+            for (let f = 0; f < 3; f++) {
+                const singleFloorGroup = new THREE.Group();
+
+                // Floor slab base
+                const slabGeo = new THREE.BoxGeometry(12, 0.2, 9);
+                const slabMat = new THREE.MeshStandardMaterial({ color: 0x1e293b, roughness: 0.5 });
+                const slab = new THREE.Mesh(slabGeo, slabMat);
+                slab.position.y = -0.6;
+                singleFloorGroup.add(slab);
+
+                // Exterior Glass Walls
+                const glassMat = new THREE.MeshStandardMaterial({ color: f === 0 ? 0x06b6d4 : (f === 1 ? 0x10b981 : 0xa855f7), transparent: true, opacity: 0.35, roughness: 0.1 });
+                const wall1 = new THREE.Mesh(new THREE.BoxGeometry(12, 1.2, 0.2), glassMat);
+                wall1.position.set(0, 0, 4.4);
+                const wall2 = new THREE.Mesh(new THREE.BoxGeometry(12, 1.2, 0.2), glassMat);
+                wall2.position.set(0, 0, -4.4);
+                const wall3 = new THREE.Mesh(new THREE.BoxGeometry(0.2, 1.2, 9), glassMat);
+                wall3.position.set(5.9, 0, 0);
+                const wall4 = new THREE.Mesh(new THREE.BoxGeometry(0.2, 1.2, 9), glassMat);
+                wall4.position.set(-5.9, 0, 0);
+                singleFloorGroup.add(wall1, wall2, wall3, wall4);
+
+                // Interior Room Partitions & Workstations (Rooms architecture)
+                const partitionMat = new THREE.MeshStandardMaterial({ color: 0x334155, roughness: 0.6 });
+                const deskMat = new THREE.MeshStandardMaterial({ color: 0x64748b, roughness: 0.4 });
+
+                // Central Corridor partition
+                const p1 = new THREE.Mesh(new THREE.BoxGeometry(4, 1.2, 0.15), partitionMat);
+                p1.position.set(-2, 0, 1.5);
+                const p2 = new THREE.Mesh(new THREE.BoxGeometry(4, 1.2, 0.15), partitionMat);
+                p2.position.set(2, 0, -1.5);
+                singleFloorGroup.add(p1, p2);
+
+                // Meeting Room / Server Room box
+                const roomBox = new THREE.Mesh(new THREE.BoxGeometry(3.5, 1.2, 3), new THREE.MeshStandardMaterial({ color: 0x0f172a, roughness: 0.8, transparent: true, opacity: 0.6 }));
+                roomBox.position.set(3.2, 0, 2.5);
+                singleFloorGroup.add(roomBox);
+
+                // Workstation Desks inside rooms
+                for (let dx = -4; dx <= -1; dx += 1.5) {
+                    for (let dz = -2; dz <= 2; dz += 2) {
+                        const desk = new THREE.Mesh(new THREE.BoxGeometry(1.0, 0.4, 0.7), deskMat);
+                        desk.position.set(dx, -0.3, dz);
+                        singleFloorGroup.add(desk);
+                    }
+                }
+
+                singleFloorGroup.position.y = f * 1.8;
+                floorGroup.add(singleFloorGroup);
+            }
+
+            scene.add(floorGroup);
+            window.bimFloorGroup = floorGroup;
+            setBimFloor(0);
+
+            // Animation loop
+            function animate() {
+                requestAnimationFrame(animate);
+                controls.update();
+                renderer.render(scene, camera);
+            }
+            animate();
+        }
+
+        async function initCartoMap() {
+            const container = document.getElementById('cartoMapContainer');
+            if (!container) return;
+            cartoMap = L.map('cartoMapContainer').setView([17.4483, 78.3915], 5);
+            
+            try {
+                const res = await fetch('/api/gis/config');
+                const config = await res.json();
+                cartoTileLayer = L.tileLayer(config.tileLayerUrl || 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+                    attribution: '&copy; OpenStreetMap contributors &copy; CARTO',
+                    maxZoom: 19
+                }).addTo(cartoMap);
+            } catch (e) {
+                cartoTileLayer = L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', { maxZoom: 19 }).addTo(cartoMap);
+            }
+
+            Object.keys(benchmarkDatasets).forEach(key => {
+                const b = benchmarkDatasets[key];
+                L.marker([b.lat, b.lon]).addTo(cartoMap)
+                    .bindPopup(`<b>${b.name}</b><br>Power: ${b.power}<br><a href="#" onclick="switchBuilding('${key}');return false;">Load Telemetry Twin</a>`);
+            });
+        }
+
+        function updateMapFocus(lat, lon) {
+            if (cartoMap) {
+                cartoMap.setView([lat, lon], 13);
+            }
+        }
+
+        async function sendGroqMessage() {
+            processGroqChat('chatInput', 'chatMessages');
+        }
+
+        async function sendGisGroqMessage() {
+            processGroqChat('gisChatInput', 'gisChatMessages');
+        }
+
+        async function askGroqAboutCurrentBuilding() {
+            const b = benchmarkDatasets[currentBuilding];
+            const prompt = `Analyze the climate, regional DISCOM tariff structure, and solar PV potential for ${b.name} located at Latitude ${b.lat}, Longitude ${b.lon}. Provide actionable energy optimization steps.`;
+            document.getElementById('gisChatInput').value = prompt;
+            sendGisGroqMessage();
+        }
+
+        async function processGroqChat(inputId, messagesId) {
+            const input = document.getElementById(inputId);
+            const message = input.value.trim();
+            if (!message) return;
+
+            const chatMessages = document.getElementById(messagesId);
+            
+            // Append User Message safely using DOM methods
+            const userDiv = document.createElement('div');
+            userDiv.className = "bg-slate-800/40 p-2.5 rounded-lg text-slate-200 ml-4 border border-slate-700/50 mb-2";
+            userDiv.innerHTML = `<span class="text-cyan-400 font-semibold block mb-0.5">You</span>${escapeHtml(message)}`;
+            chatMessages.appendChild(userDiv);
+            
+            input.value = '';
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+
+            // Append Loading Indicator
+            const loadingDiv = document.createElement('div');
+            loadingDiv.className = "bg-slate-800/80 p-2.5 rounded-lg text-slate-400 italic mb-2";
+            loadingDiv.innerHTML = `<span class="text-purple-400 font-semibold block mb-0.5">Mixtral 8x7b</span>Querying secure backend proxy...`;
+            chatMessages.appendChild(loadingDiv);
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+
+            try {
+                const response = await fetch("/api/ai/copilot", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        prompt: message,
+                        buildingContext: benchmarkDatasets[currentBuilding]
+                    })
+                });
+
+                const data = await response.json();
+                loadingDiv.remove();
+
+                if (data.choices && data.choices.length > 0) {
+                    const reply = data.choices[0].message.content;
+                    const replyDiv = document.createElement('div');
+                    replyDiv.className = "bg-slate-800/80 p-2.5 rounded-lg text-slate-200 border border-purple-500/30 mb-2";
+                    replyDiv.innerHTML = `<span class="text-purple-400 font-semibold block mb-0.5">Mixtral 8x7b</span>${escapeHtml(reply)}`;
+                    chatMessages.appendChild(replyDiv);
+                } else {
+                    const errDetail = typeof data.error === 'string' ? data.error : (data.error?.message || JSON.stringify(data.error || "Invalid API response from proxy"));
+                    throw new Error(errDetail);
+                }
+            } catch (err) {
+                loadingDiv.remove();
+                const errDiv = document.createElement('div');
+                errDiv.className = "bg-rose-500/10 border border-rose-500/30 p-2.5 rounded-lg text-rose-300 mb-2";
+                const errMsg = (err && typeof err === 'object') ? (err.message || JSON.stringify(err)) : String(err);
+                errDiv.innerHTML = `<span class="font-semibold block mb-0.5">API Error</span>${escapeHtml(errMsg)}`;
+                chatMessages.appendChild(errDiv);
+            }
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+
+        function escapeHtml(text) {
+            const map = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' };
+            return text.replace(/[&<>"']/g, m => map[m]);
+        }
+
+        
+        function setBimFloor(floorIdx) {
+            if (!window.bimFloorGroup) return;
+            window.bimFloorGroup.children.forEach((child, idx) => {
+                child.visible = (idx === floorIdx);
+            });
+            const zones = [
+                { name: "Zone-A (Server & Workstations)", cfm: "1,450 CFM", temp: "18.2°C", occupants: "34 People", damper: "68% Open" },
+                { name: "Zone-B (Executive Boardrooms)", cfm: "1,200 CFM", temp: "21.5°C", occupants: "12 People", damper: "55% Open" },
+                { name: "Zone-C (Atrium & Cafeteria)", cfm: "2,800 CFM", temp: "23.4°C", occupants: "85 People", damper: "85% Open" }
+            ];
+            const z = zones[floorIdx] || zones[0];
+            document.getElementById('bimZoneDetails').innerHTML = `
+                <div class="flex justify-between text-slate-400"><span>Selected Zone:</span><span class="text-white font-mono font-semibold">${z.name}</span></div>
+                <div class="flex justify-between text-slate-400"><span>Airflow CFM:</span><span class="text-cyan-400 font-mono font-semibold">${z.cfm}</span></div>
+                <div class="flex justify-between text-slate-400"><span>Supply Temp:</span><span class="text-emerald-400 font-mono font-semibold">${z.temp}</span></div>
+                <div class="flex justify-between text-slate-400"><span>Occupant Density:</span><span class="text-purple-400 font-mono font-semibold">${z.occupants}</span></div>
+                <div class="flex justify-between text-slate-400"><span>Damper Position:</span><span class="text-amber-400 font-mono font-semibold">${z.damper}</span></div>
+            `;
+        }
+
+        function updateBimSetpoint(val) {
+            document.getElementById('setpointVal').innerText = parseFloat(val).toFixed(1) + '°C';
+        }
+
+        function triggerZoneFlush() {
+            alert("VAV Purge Cycle initiated successfully. Fresh air dampers opened to 100% for 15 minutes.");
+        }
+
+        function switchForecastModel(model) {
+            alert("Switched forecasting model to: " + model.toUpperCase() + ". Recalculating TimescaleDB telemetry vectors...");
+        }
+
+        function runPeakShavingSimulation() {
+            alert("Peak Shaving Simulation executed! Battery ESS and thermal ice storage scheduled to discharge 50 kW during evening peak hours, saving ~₹3,400 daily.");
+        }
+
+        function createNewWorkOrder() {
+            const ticketId = 'WO-2026-' + Math.floor(100 + Math.random() * 900);
+            const tbody = document.getElementById('cmmsTableBody');
+            tbody.innerHTML += `
+                <tr>
+                    <td class="p-3 text-cyan-400 font-semibold">${ticketId}</td>
+                    <td class="p-3 text-white">AHU Floor 2 (East Wing)</td>
+                    <td class="p-3 text-slate-300">Filter pressure drop warning (> 250 Pa)</td>
+                    <td class="p-3"><span class="px-2 py-0.5 bg-amber-500/20 text-amber-400 rounded-full text-[10px]">Medium</span></td>
+                    <td class="p-3 text-slate-300">Auto-Assigned (AI Dispatch)</td>
+                    <td class="p-3"><span class="px-2 py-0.5 bg-cyan-500/20 text-cyan-300 rounded-full text-[10px]">Dispatched</span></td>
+                    <td class="p-3">
+                        <button onclick="resolveTicket('${ticketId}')" class="px-2.5 py-1 bg-emerald-600/30 hover:bg-emerald-600/50 text-emerald-300 rounded-lg text-[11px] transition-all">Mark Resolved</button>
+                    </td>
+                </tr>
+            `;
+            alert("New FDD anomaly detected! Work order " + ticketId + " automatically dispatched to maintenance team.");
+        }
+
+        function resolveTicket(id) {
+            alert("Work order " + id + " marked as Resolved. FDD anomaly closed.");
+            event.target.closest('tr').remove();
+        }
+
+        
+                // Real-Life Live Weather & Solar Ingestion via Open-Meteo API
+        async function fetchRealLifeTelemetry(lat, lon, bldgKey) {
+            try {
+                const res = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,relative_humidity_2m,direct_radiation`);
+                const data = await res.json();
+                if (data && data.current) {
+                    const temp = data.current.temperature_2m;
+                    const radiation = data.current.direct_radiation || 450;
+                    const calculatedSolar = (radiation * 0.12).toFixed(1) + ' kW';
+                    const calculatedPower = (120 + (temp * 1.5) - (radiation * 0.05)).toFixed(1) + ' kW';
+                    const tempStr = temp.toFixed(1) + '°C';
+
+                    benchmarkDatasets[bldgKey].power = calculatedPower;
+                    benchmarkDatasets[bldgKey].solar = calculatedSolar;
+                    benchmarkDatasets[bldgKey].temp = tempStr;
+
+                    if (currentBuilding === bldgKey) {
+                        document.getElementById('kpi-power').innerText = calculatedPower;
+                        document.getElementById('kpi-solar').innerText = calculatedSolar;
+                        document.getElementById('kpi-temp').innerText = tempStr;
+                    }
+                }
+            } catch (err) {
+                console.log("Using baseline telemetry fallback:", err);
+            }
+        }
+
+        // Fetch real-life data on load and building switch
+        function updateRealLifeData() {
+            const b = benchmarkDatasets[currentBuilding];
+            fetchRealLifeTelemetry(b.lat, b.lon, currentBuilding);
+        }
+
+        
+        // --- NEW FUNCTIONAL CAPABILITIES ---
+        
+        // 1. Export TimescaleDB Telemetry as CSV Report
+        function exportTelemetryCSV() {
+            const csvRows = [
+                ["Timestamp", "Building", "GridPower_kW", "SolarGen_kW", "Temp_C", "Status"],
+                [new Date().toISOString(), benchmarkDatasets[currentBuilding].name, benchmarkDatasets[currentBuilding].power, benchmarkDatasets[currentBuilding].solar, benchmarkDatasets[currentBuilding].temp, "Optimal"],
+                [new Date(Date.now() - 3600000).toISOString(), benchmarkDatasets[currentBuilding].name, "145.2", "45.0", "24.1", "Normal"],
+                [new Date(Date.now() - 7200000).toISOString(), benchmarkDatasets[currentBuilding].name, "158.0", "30.2", "24.6", "Peak Load"]
+            ];
+            
+            let csvContent = "data:text/csv;charset=utf-8," + csvRows.map(e => e.join(",")).join("\n");
+            const encodedUri = encodeURI(csvContent);
+            const link = document.createElement("a");
+            link.setAttribute("href", encodedUri);
+            link.setAttribute("download", `nirvahana_telemetry_${currentBuilding}_${Date.now()}.csv`);
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+
+        // 2. Interactive BIM Damper Airflow Dynamic Calculation
+        function updateBimSetpoint(val) {
+            const tempVal = parseFloat(val).toFixed(1);
+            document.getElementById('setpointVal').innerText = tempVal + '°C';
+            
+            // Dynamically recalculate zone airflow and CFM based on setpoint slider
+            const baseCfm = 1450;
+            const diff = 22.0 - parseFloat(tempVal);
+            const adjustedCfm = Math.round(baseCfm + (diff * 120));
+            const damperPct = Math.min(100, Math.max(20, Math.round(68 + (diff * 8))));
+            
+            document.getElementById('bimZoneDetails').innerHTML = `
+                <div class="flex justify-between text-slate-400"><span>Selected Zone:</span><span class="text-white font-mono font-semibold">Zone-A (Server & Workstations)</span></div>
+                <div class="flex justify-between text-slate-400"><span>Airflow CFM:</span><span class="text-cyan-400 font-mono font-semibold">${adjustedCfm} CFM</span></div>
+                <div class="flex justify-between text-slate-400"><span>Supply Temp:</span><span class="text-emerald-400 font-mono font-semibold">${(parseFloat(tempVal) - 3.8).toFixed(1)}°C</span></div>
+                <div class="flex justify-between text-slate-400"><span>Occupant Density:</span><span class="text-purple-400 font-mono font-semibold">34 People</span></div>
+                <div class="flex justify-between text-slate-400"><span>Damper Position:</span><span class="text-amber-400 font-mono font-semibold">${damperPct}% Open</span></div>
+            `;
+        }
+
+        // 3. IoT Sensor Fault Injector for FDD / CMMS
+        function injectIoTAnomaly() {
+            const anomalies = [
+                { asset: "Chiller Plant #1 (Roof)", fault: "Refrigerant subcooling low (-4.1°C)", priority: "High" },
+                { asset: "AHU Floor 1 (South Wing)", fault: "Fan belt slip detected via vibration sensor", priority: "Medium" },
+                { asset: "Main Energy Meter (Incoming)", fault: "Harmonic distortion THD > 8.5%", priority: "High" }
+            ];
+            const anomaly = anomalies[Math.floor(Math.random() * anomalies.length)];
+            const ticketId = 'WO-FDD-' + Math.floor(1000 + Math.random() * 9000);
+            
+            const tbody = document.getElementById('cmmsTableBody');
+            tbody.innerHTML = `
+                <tr>
+                    <td class="p-3 text-cyan-400 font-semibold">${ticketId}</td>
+                    <td class="p-3 text-white">${anomaly.asset}</td>
+                    <td class="p-3 text-slate-300">${anomaly.fault}</td>
+                    <td class="p-3"><span class="px-2 py-0.5 bg-rose-500/20 text-rose-400 rounded-full text-[10px]">${anomaly.priority}</span></td>
+                    <td class="p-3 text-slate-300">Auto-Dispatched (AI FDD)</td>
+                    <td class="p-3"><span class="px-2 py-0.5 bg-rose-500/20 text-rose-300 rounded-full text-[10px]">Active Anomaly</span></td>
+                    <td class="p-3">
+                        <button onclick="resolveTicket('${ticketId}')" class="px-2.5 py-1 bg-emerald-600/30 hover:bg-emerald-600/50 text-emerald-300 rounded-lg text-[11px] transition-all">Mark Resolved</button>
+                    </td>
+                </tr>
+            ` + tbody.innerHTML;
+            
+            alert(`🚨 IoT Sensor Anomaly Injected! FDD engine detected: ${anomaly.fault} at ${anomaly.asset}. Work order ${ticketId} created.`);
+        }
+
+
+        
+        let microgridChartInstance = null;
+        function initMicrogridChart() {
+            const ctx = document.getElementById('microgridChart');
+            if (!ctx || microgridChartInstance) return;
+            microgridChartInstance = new Chart(ctx.getContext('2d'), {
+                type: 'line',
+                data: {
+                    labels: ['12:00', '13:00', '14:00', '15:00', '16:00', '17:00', '18:00'],
+                    datasets: [
+                        { label: 'Grid Frequency (Hz)', data: [50.02, 49.98, 50.01, 50.00, 49.99, 50.02, 50.01], borderColor: '#10b981', tension: 0.3, yAxisID: 'y' },
+                        { label: 'Bus Voltage (V)', data: [415.2, 414.8, 415.0, 415.3, 414.9, 415.1, 415.0], borderColor: '#06b6d4', tension: 0.3, yAxisID: 'y1' }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { labels: { color: '#cbd5e1' } } },
+                    scales: {
+                        x: { ticks: { color: '#94a3b8' }, grid: { color: '#1e293b' } },
+                        y: { type: 'linear', position: 'left', ticks: { color: '#10b981' }, grid: { color: '#1e293b' } },
+                        y1: { type: 'linear', position: 'right', ticks: { color: '#06b6d4' }, grid: { display: false } }
+                    }
+                }
+            });
+        }
+
+        function updateBessDispatch(val) {
+            const v = parseInt(val);
+            document.getElementById('bessSliderVal').innerText = (v > 0 ? `+${v}` : v) + ' kW';
+            document.getElementById('bessPower').innerText = (v > 0 ? `+${v}` : v) + ' kW';
+        }
+
+        function setBessMode(mode) {
+            if (mode === 'auto') {
+                alert("AI Auto-Dispatch activated! BESS will automatically discharge during TOU peak hours and charge during solar generation hours.");
+            } else {
+                alert("Zero-Export Eco Mode activated! Microgrid will curtail excess solar to prevent grid backflow.");
+            }
+        }
+
+        function triggerMicrogridIsland() {
+            alert("⚠️ Microgrid Islanding Test Initiated! Building successfully disconnected from grid within 14ms. Autonomous BESS and rooftop solar supporting 100% critical load.");
+        }
+window.onload = function () {
+            lucide.createIcons();
+
+            const ctxPower = document.getElementById('powerInflowChart').getContext('2d');
+            new Chart(ctxPower, {
+                type: 'line',
+                data: {
+                    labels: ['00:00', '03:00', '06:00', '09:00', '12:00', '15:00', '18:00', '21:00'],
+                    datasets: [
+                        { label: 'Grid Power (kW)', data: [110, 95, 85, 160, 210, 195, 142, 120], borderColor: '#f59e0b', backgroundColor: 'rgba(245, 158, 11, 0.1)', fill: true, tension: 0.3 },
+                        { label: 'Solar PV Gen (kW)', data: [0, 0, 10, 35, 65, 55, 20, 0], borderColor: '#10b981', backgroundColor: 'rgba(16, 185, 129, 0.1)', fill: true, tension: 0.3 }
+                    ]
+                },
+                options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { labels: { color: '#cbd5e1' } } }, scales: { x: { ticks: { color: '#94a3b8' }, grid: { color: '#1e293b' } }, y: { ticks: { color: '#94a3b8' }, grid: { color: '#1e293b' } } } }
+            });
+        };
+    </script>
+</body>
+</html>
